@@ -217,7 +217,7 @@ client.on("ready", (bot_) => {
         }
 
         const type = interaction.options.getString("opt") || "";
-        const val = interaction.options.getNumber("val") || 1;
+        const val = interaction.options.get("val", true) || 0;
 
         await win.webContents.executeJavaScript(
           optChangeScript
