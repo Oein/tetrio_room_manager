@@ -1,8 +1,6 @@
 const id = "__ENV__ID__";
 const pw = "__ENV__PW__";
 
-let isSpectator = true;
-
 const waitElementNotHidden = (element) => {
   let inter = null;
   return new Promise((resolve, reject) => {
@@ -27,15 +25,11 @@ const waitExsistsElement = (query) => {
   });
 };
 
-const waitElementNotEmpty = (element) => {
-  let inter = null;
+const delay = (ms) => {
   return new Promise((resolve, reject) => {
-    inter = setInterval(() => {
-      if (element.innerText.length > 0) {
-        clearInterval(inter);
-        resolve();
-      }
-    }, 100);
+    setTimeout(() => {
+      resolve();
+    }, ms);
   });
 };
 
@@ -54,29 +48,10 @@ const waitElementNotEmpty = (element) => {
   await waitExsistsElement("#dialogs > div > h1");
   document.querySelector("#dialogs > div > div > div.pri").click();
 
-  document.getElementById("play_multi").click();
-  await waitExsistsElement("#multi_menu");
-  document.getElementById("multi_createroom").click();
-  document.querySelector("div[data-id=private]").click();
-  await waitElementNotEmpty(document.querySelector("#roomid"));
+  document.getElementById("sig_config").click();
+  document.querySelector('h1[title="Change the way TETR.IO looks"]').click();
+  document.getElementById("video_graphics_minimal").click();
+  document.getElementById("video_powersave").click();
 
-  const g = document.getElementById("victoryview");
-  setInterval(() => {
-    if (!g.classList.contains("hidden")) {
-      document.getElementById("backtoroom").click();
-    }
-  }, 10);
-  setInterval(() => {
-    if (document.getElementById("leaveroom").classList.contains("hidden"))
-      return;
-    let specBtn = document.getElementById("room_switchbracket");
-    let isNowSpec = specBtn.innerText.includes("SPECTATING");
-    if (!isSpectator && isNowSpec) specBtn.click();
-    if (isSpectator && !isNowSpec) specBtn.click();
-  }, 1000);
-
-  document.getElementById("room_switchbracket").click();
-  document.getElementById("room_opts_game").click();
-
-  return document.querySelector("#roomid").innerText;
+  await delay(1000);
 })();

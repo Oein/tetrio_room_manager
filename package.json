@@ -8,7 +8,8 @@
     "electron": "^23.0.0"
   },
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "prestart": "tsc"
   },
   "dependencies": {
     "discord.js": "^14.7.1",
