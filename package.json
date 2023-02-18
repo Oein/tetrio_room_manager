@@ -14,7 +14,6 @@
   "dependencies": {
     "discord.js": "^14.7.1",
     "dotenv": "^16.0.3",
-    "electron-video-recorder": "^0.0.5",
     "typescript": "^4.9.5"
   }
 }
