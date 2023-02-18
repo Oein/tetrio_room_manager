@@ -37,6 +37,7 @@ interface Preset {
 dotenv.config();
 
 let roomid = "";
+let playid = "";
 
 const num_options: NumOption[] = [
   {
@@ -375,6 +376,31 @@ const createWindow = () => {
     win.webContents.executeJavaScript(injectAllScript);
   });
 
+  win.webContents.session.on("will-download", (event, item, web) => {
+    item.setSavePath(path.join(__dirname, "game.ttrm"));
+
+    item.on("done", async () => {
+      const waitID = () => {
+        return new Promise<void>((resolve, reject) => {
+          let inter = setInterval(() => {
+            if (playid.length > 0) {
+              clearInterval(inter);
+              return resolve();
+            }
+            return;
+          }, 50);
+        });
+      };
+
+      await waitID();
+
+      ((await bot.channels.fetch("1076518532797452419")) as TextChannel).send({
+        content: `**PLAYID ${playid}**`,
+        files: [path.join(__dirname, "game.ttrm")],
+      });
+    });
+  });
+
   win.webContents.once("dom-ready", async () => {
     await win.webContents.executeJavaScript(
       initScript
@@ -453,7 +479,14 @@ client.on("ready", async (bot_) => {
       playing = false;
       return 0;
     });
+    ipcMain.handle("data.game.crash", async () => {
+      roomid = "";
+      rpcer("Tetr.io 키는중...", "https://tetr.io/");
+      playing = false;
+      return 0;
+    });
     ipcMain.handle("data.game.winner", async (event: any, winnerID: string) => {
+      playid = `T${new Date().getTime()}`;
       ((await bot.channels.fetch("1076379331456147468")) as TextChannel)?.send({
         embeds: [
           {
@@ -463,6 +496,10 @@ client.on("ready", async (bot_) => {
               {
                 name: "Winner Profile URL",
                 value: `https://ch.tetr.io/u/${winnerID}`,
+              },
+              {
+                name: "PLAY_ID",
+                value: playid,
               },
             ],
           },
@@ -492,6 +529,16 @@ client.on("interactionCreate", async (interaction) => {
     case "play":
       if (playing) {
         interaction.reply("아직 게임이 진행중 이에요.");
+        return;
+      }
+      if (
+        parseInt(
+          (await win.webContents.executeJavaScript(
+            "document.getElementById('playercount').innerText"
+          )) || "0"
+        ) < 2
+      ) {
+        interaction.reply("플레이어 수가 부족해요.");
         return;
       }
 
@@ -607,7 +654,7 @@ client.on("interactionCreate", async (interaction) => {
         interaction.reply("아직 게임이 진행중 이에요.");
         return;
       }
-      spectating = false;
+      spectating = true;
       win.webContents.executeJavaScript("isSpectator = true;");
       interaction.reply("관전자 모드로 변경했어요.");
       return;

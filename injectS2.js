@@ -55,6 +55,7 @@ let isSpectator = true;
           document.getElementById("playerresults").children[0].children[1]
             .innerText
         );
+        document.getElementById("victory_downloadreplay").click();
         document.getElementById("backtoroom").click();
         window.ipcRenderer.invoke("event.game.end");
       }
