@@ -50,7 +50,13 @@ let isSpectator = true;
     const g = document.getElementById("victoryview");
     setInterval(() => {
       if (!g.classList.contains("hidden")) {
+        window.ipcRenderer.invoke(
+          "data.game.winner",
+          document.getElementById("playerresults").children[0].children[1]
+            .innerText
+        );
         document.getElementById("backtoroom").click();
+        window.ipcRenderer.invoke("event.game.end");
       }
     }, 10);
     setInterval(() => {
