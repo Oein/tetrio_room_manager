@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session } from "electron";
+import { app, BrowserWindow, ipcMain, session } from "electron";
 import { readFileSync } from "fs";
 import * as dotenv from "dotenv";
 import path from "path";
@@ -8,6 +8,7 @@ import {
   REST as d_REST,
   Routes as d_Routes,
   SlashCommandBuilder,
+  TextChannel,
 } from "discord.js";
 
 interface NumOption {
@@ -343,13 +344,11 @@ const injectScript = readFileSync(
 const injectAllScript = readFileSync(
   path.join(__dirname, "..", "injectToAll.js")
 ).toString();
-const isPlayingScript = readFileSync(
-  path.join(__dirname, "..", "isPlaying.js")
-).toString();
 
 let win: BrowserWindow;
 let bot: d_Client<true>;
-let everConnected = false;
+let spectating = true;
+let playing = false;
 
 const rpcer = (name: string, url: string) => {
   if (!bot) return;
@@ -365,6 +364,9 @@ const createWindow = () => {
     width: 100,
     height: 1,
     alwaysOnTop: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+    },
   });
 
   win.loadURL("https://tetr.io/");
@@ -417,12 +419,9 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-const isPlaying = async (): Promise<boolean> => {
-  return await win.webContents.executeJavaScript(isPlayingScript);
-};
-
-client.on("ready", (bot_) => {
+client.on("ready", async (bot_) => {
   bot = bot_;
+
   console.log("[Discord Boot]", `Logged in as ${bot.user.tag}!`);
 
   if (roomid.length == 0) rpcer("Tetr.io 키는중...", "https://tetr.io/");
@@ -447,6 +446,30 @@ client.on("ready", (bot_) => {
       console.error(error);
     }
   })();
+
+  (() => {
+    ipcMain.handle("event.game.end", async (event) => {
+      rpcer(`TETR.IO ${roomid} / 게임 메뉴`, `https://tetr.io/${roomid}`);
+      playing = false;
+      return 0;
+    });
+    ipcMain.handle("data.game.winner", async (event: any, winnerID: string) => {
+      ((await bot.channels.fetch("1076379331456147468")) as TextChannel)?.send({
+        embeds: [
+          {
+            title: "Winner 👑",
+            description: `is \`${winnerID}\``,
+            fields: [
+              {
+                name: "Winner Profile URL",
+                value: `https://ch.tetr.io/u/${winnerID}`,
+              },
+            ],
+          },
+        ],
+      });
+    });
+  })();
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -467,20 +490,26 @@ client.on("interactionCreate", async (interaction) => {
         );
       return;
     case "play":
-      if (await isPlaying()) {
+      if (playing) {
         interaction.reply("아직 게임이 진행중 이에요.");
         return;
       }
 
+      playing = true;
+
       console.log("[Electron]", "Request Play");
 
+      rpcer(
+        `TETR.IO ${roomid} / 게임 ${spectating ? "관전" : "플레이"}중..`,
+        `https://tetr.io/${roomid}`
+      );
       interaction.reply(`게임 시작을 요청했어요! 곧 시작될테니 준비하세요.`);
       win.webContents.executeJavaScript(
         `document.getElementById("startroom").click()`
       );
       return;
     case "options":
-      if (await isPlaying()) {
+      if (playing) {
         interaction.reply("아직 게임이 진행중 이에요.");
         return;
       }
@@ -531,7 +560,7 @@ client.on("interactionCreate", async (interaction) => {
           return;
       }
     case "preset":
-      if (await isPlaying()) {
+      if (playing) {
         interaction.reply("아직 게임이 진행중 이에요.");
         return;
       }
@@ -570,20 +599,30 @@ client.on("interactionCreate", async (interaction) => {
 
       return;
     case "spectator":
-      if (await isPlaying()) {
+      if (spectating) {
+        interaction.reply("이미 관전자 모드에요.");
+        return;
+      }
+      if (playing) {
         interaction.reply("아직 게임이 진행중 이에요.");
         return;
       }
+      spectating = false;
       win.webContents.executeJavaScript("isSpectator = true;");
       interaction.reply("관전자 모드로 변경했어요.");
       return;
     case "player":
-      if (await isPlaying()) {
+      if (!spectating) {
+        interaction.reply("이미 플레이어 모드에요.");
+        return;
+      }
+      if (playing) {
         interaction.reply("아직 게임이 진행중 이에요.");
         return;
       }
       win.webContents.executeJavaScript("isSpectator = false;");
       interaction.reply("플레이어 모드로 변경했어요.");
+      spectating = false;
       return;
     default:
       return;
