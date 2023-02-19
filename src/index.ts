@@ -398,6 +398,8 @@ const createWindow = () => {
         content: `**PLAYID ${playid}**`,
         files: [path.join(__dirname, "game.ttrm")],
       });
+
+      playing = false;
     });
   });
 
@@ -476,7 +478,6 @@ client.on("ready", async (bot_) => {
   (() => {
     ipcMain.handle("event.game.end", async (event) => {
       rpcer(`TETR.IO ${roomid} / 게임 메뉴`, `https://tetr.io/${roomid}`);
-      playing = false;
       return 0;
     });
     ipcMain.handle("data.game.crash", async () => {
