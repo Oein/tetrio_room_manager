@@ -48,16 +48,24 @@ let isSpectator = true;
     await waitElementNotEmpty(document.querySelector("#roomid"));
 
     const g = document.getElementById("victoryview");
+    let xyed = false;
     setInterval(() => {
       if (!g.classList.contains("hidden")) {
-        window.ipcRenderer.invoke(
-          "data.game.winner",
-          document.getElementById("playerresults").children[0].children[1]
-            .innerText
-        );
-        document.getElementById("victory_downloadreplay").click();
-        document.getElementById("backtoroom").click();
-        window.ipcRenderer.invoke("event.game.end");
+        if (!xyed) {
+          window.ipcRenderer.invoke(
+            "data.game.winner",
+            document.getElementById("playerresults").children[0].children[1]
+              .innerText
+          );
+          document.getElementById("victory_downloadreplay").click();
+
+          window.ipcRenderer.invoke("event.game.end");
+          xyed = true;
+        }
+        window.ipcRenderer.once("reply.done", () => {
+          xyed = false;
+          document.getElementById("backtoroom").click();
+        });
       }
     }, 10);
     setInterval(() => {

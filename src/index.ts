@@ -394,10 +394,25 @@ const createWindow = () => {
 
       await waitID();
 
-      ((await bot.channels.fetch("1076518532797452419")) as TextChannel).send({
-        content: `**PLAYID ${playid}**`,
-        files: [path.join(__dirname, "game.ttrm")],
-      });
+      let isSuc = JSON.parse(
+        readFileSync(path.join(__dirname, "game.ttrm")).toString()
+      )["data"][0]["replays"][0]["events"][0]["data"]["successful"];
+
+      if (isSuc)
+        ((await bot.channels.fetch("1076518532797452419")) as TextChannel).send(
+          {
+            content: `**PLAYID ${playid}**`,
+            files: [path.join(__dirname, "game.ttrm")],
+          }
+        );
+      else
+        ((await bot.channels.fetch("1076518532797452419")) as TextChannel).send(
+          {
+            content: `**PLAYID ${playid}**\n> File is not valid.`,
+          }
+        );
+
+      win.webContents.send("reply.done");
 
       playing = false;
     });
